@@ -1,0 +1,39 @@
+<!--회사마다 설정이 다름-->
+
+<!-- 60초마다 설정 파일의 변경을 확인 하여 변경시 갱신 -->
+<configuration scan="true" scanPeriod="60 seconds">
+	<!--로그 파일 저장 위치-->
+	<property name="LOGS_PATH" value="C:/Users/mobigen/logs"/>
+	
+	<!--기본 콘솔출력 패턴-->
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+	  <encoder>
+	    <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+	  </encoder>
+	</appender>
+  	
+  	<!--로그 파일 저장-->
+	<appender name="DAILY_ROLLING_FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS_PATH}/logback.log</file>
+        
+        <encoder>
+            <pattern>[%d{yyyy-MM-dd HH:mm:ss}:%-3relative][%thread] %-5level %logger{35} - %msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS_PATH}/logback.%d{yyyy-MM-dd}_%i.log.gz</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <!-- 파일당 최고 용량 -->
+                <maxFileSize>10MB</maxFileSize>
+                <!-- kb, mb, gb -->
+            </timeBasedFileNamingAndTriggeringPolicy>
+            
+            <!-- 일자별 로그파일 최대 보관주기(~일), 해당 설정일 이상된 파일은 자동으로 제거-->
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+    </appender>
+	
+	<root level="INFO"> <!-- 기본 출력 레벨 -->
+		<appender-ref ref="STDOUT" /> <!-- 화면에 출력-->
+		<appender-ref ref="DAILY_ROLLING_FILE_APPENDER"></appender-ref>
+	</root>
+</configuration>

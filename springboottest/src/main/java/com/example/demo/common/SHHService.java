@@ -39,7 +39,7 @@ public class SHHService{
     		//결과확인	
     		StringBuilder sb = new StringBuilder();	
     		String line = br.readLine();
-    		while(line != null) {
+    		while(line != null) { //ansible의 ps 명령어일때만 파싱하도록 
     			sb.append(line + "\n");
     			line = br.readLine();
     		}
@@ -62,13 +62,10 @@ public class SHHService{
 		try {
 			fileWriter.write(processInfo);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}finally {
 			fileWriter.close();
 		}
-		
-		
 	}
 	
 	//서버에서 로그아웃
