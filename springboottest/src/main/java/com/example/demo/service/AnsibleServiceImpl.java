@@ -31,7 +31,6 @@ public class AnsibleServiceImpl implements AnsibleService{
 		String host = ansibleCmd.get("host").toString();
 		int port = Integer.parseInt(ansibleCmd.get("port").toString());
 		String password = ansibleCmd.get("password").toString();
-		String group = ansibleCmd.get("group").toString();
 		String playbook = ansibleCmd.get("playbook").toString();
 		String var = ansibleCmd.get("var").toString();
 		
@@ -61,9 +60,11 @@ public class AnsibleServiceImpl implements AnsibleService{
 		BufferedReader reader = new BufferedReader(new StringReader(result)); 
 			
 		String line = null;
+		
 		StringBuilder sb = new StringBuilder();
 		
 		boolean flag = false;
+		boolean flag2 = false;
 		
 		int count = 0;
 		
@@ -85,21 +86,24 @@ public class AnsibleServiceImpl implements AnsibleService{
 						if(str.equals("ok:")) {
 							String temp = st.nextToken();
 							
+							temp = temp.replaceAll("[\\[\\]]", "");
 							map.put("host" + count, temp);
 							break;
 						}
 						
 						if(str.contains("ps.stdout_lines")) { //ps목록 전의 문장
 							flag = false;
+							flag2 = true;
 							break;
 						}
 					}
 				}else { //ps목록 뽑기
 					if(line.equals("}")) {
 						flag = true;
-						map.put("ps" + count, sb.toString());
+						map.put("ps" + count, new String(sb.toString()));
+						sb.delete(0, sb.length());
 						count++;
-					}else {
+					}else if(flag2 == true){
 						sb.append(line);			
 					}
 				}

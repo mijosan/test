@@ -19,7 +19,7 @@ import com.example.demo.service.AnsibleService;
 public class AnsibleController {
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	
-	@Resource(name="AnsibleService") // OCP : 개방 폐쇄의 원칙 적용
+	@Resource(name="AnsibleService")
 	private AnsibleService ansibleService;
 	
 	@PostMapping("/getProcess")
