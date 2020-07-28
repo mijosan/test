@@ -39,11 +39,10 @@ public class SHHService{
     		//결과확인	
     		StringBuilder sb = new StringBuilder();	
     		String line = br.readLine();
-    		while(line != null) { //ansible의 ps 명령어일때만 파싱하도록 
+    		while(line != null) {
     			sb.append(line + "\n");
     			line = br.readLine();
     		}
-    		System.out.println(sb.toString());
     
     		return sb.toString();
     		

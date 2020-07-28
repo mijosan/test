@@ -1,7 +1,13 @@
 package com.example.demo.service;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,10 +45,72 @@ public class AnsibleServiceImpl implements AnsibleService{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-		processDomain.setCommand(result);
+		
+		processDomain.setPsList(parsing(result));
 		
 		
 		return processDomain;
+	}
+	
+	private List<HashMap<String, String>> parsing(String result){
+		
+		List<HashMap<String,String>> list = new ArrayList<HashMap<String, String>>();
+		
+		HashMap<String, String> map = new HashMap<String, String>();
+
+		BufferedReader reader = new BufferedReader(new StringReader(result)); 
+			
+		String line = null;
+		StringBuilder sb = new StringBuilder();
+		
+		boolean flag = false;
+		
+		int count = 0;
+		
+		try {
+			while((line = reader.readLine()) != null) {
+				
+				if(line.contains("debug")) { //debug문을 만나면 그때부터 파싱 시작	
+					flag = true;
+					
+					continue;
+				}
+				
+				if(flag == true) { //호스트 값 뽑기
+					StringTokenizer st = new StringTokenizer(line, " ");
+					
+					while(st.hasMoreTokens()) {
+						String str = st.nextToken();
+						
+						if(str.equals("ok:")) {
+							String temp = st.nextToken();
+							
+							map.put("host" + count, temp);
+							break;
+						}
+						
+						if(str.contains("ps.stdout_lines")) { //ps목록 전의 문장
+							flag = false;
+							break;
+						}
+					}
+				}else { //ps목록 뽑기
+					if(line.equals("}")) {
+						flag = true;
+						map.put("ps" + count, sb.toString());
+						count++;
+					}else {
+						sb.append(line);			
+					}
+				}
+			}
+			
+			list.add(map);
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+			
+		return list;
 	}
 }
