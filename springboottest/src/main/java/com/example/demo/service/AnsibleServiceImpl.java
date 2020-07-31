@@ -63,7 +63,7 @@ public class AnsibleServiceImpl implements AnsibleService{
 		
 		StringBuilder sb = new StringBuilder();
 		
-		//장비가 100대 넘어갈수도 있으니 List 형식으로 바꿔야함
+		//장비의 개수를 받아와 배열크기 지정
 		ProcessDomain[] pd = new ProcessDomain[100];
 		
 		//프로세스가 100개 넘어갈수도 있으니 동적으로 확장하는 List 형식으로 변경
@@ -125,20 +125,29 @@ public class AnsibleServiceImpl implements AnsibleService{
 						
 						StringTokenizer st = new StringTokenizer(temp, " ");				
 						
-						String cmd = null;
-						String mem = null;
-						String cpu = null;
+						String cmd = "";
+						String mem = "";
+						String cpu = "";
+						
+						String temp2;
 						
 						if(st.hasMoreTokens()) {
-							cmd = st.nextToken();
-							System.out.println(cmd);
-							mem = st.nextToken();
-							System.out.println(mem);
-							cpu = st.nextToken();
-							System.out.println(cpu);
+
+							while(true) {
+								temp2 = st.nextToken();
+								
+								if(temp2.matches("^[0-9]+(\\.?[0-9]*)$")) {
+									mem = temp2;
+									break;
+								}
+								
+								cmd = cmd + temp2 + " ";
+							}
 							
+							cpu = st.nextToken();
+										
 							map[mapCount] = new HashMap<String, String>();
-							map[mapCount].put("cmd", cmd);
+							map[mapCount].put("cmd", cmd.trim());
 							map[mapCount].put("mem", mem);
 							map[mapCount].put("cpu", cpu);
 							
