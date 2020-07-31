@@ -21,6 +21,7 @@ import com.example.demo.domain.ProcessDomain;
 public class AnsibleServiceImpl implements AnsibleService{
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	
+	//최종 리턴 값
 	List<ProcessDomain> pdList = new ArrayList<ProcessDomain>();
 	
 	@Autowired
@@ -45,6 +46,7 @@ public class AnsibleServiceImpl implements AnsibleService{
 			
 			result = ssh.executeCommand("ansible-playbook /root/playbook/" + playbook + " --extra-vars \"NAME=" + var + "\"");
 			
+			//파싱 메서드
 			parsing3(result);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -61,35 +63,40 @@ public class AnsibleServiceImpl implements AnsibleService{
 		boolean flag = false; 
 		boolean flag2 = false;
 		
-		StringBuilder sb = new StringBuilder();
-		
-		//장비의 개수를 받아와 배열크기 지정
+		//장비의 개수를 받아와 배열크기 지정해야함 [fix]
 		ProcessDomain[] pd = new ProcessDomain[100];
 		
 		//프로세스가 100개 넘어갈수도 있으니 동적으로 확장하는 List 형식으로 변경
-		HashMap[] map = new HashMap[100];
+		HashMap[] map = new HashMap[200];
 		
+		//장비 개수 만큼 ProcessDomain 배열에 객체를 생성 하기 위해
 		int pdCount = 0;
+		
+		//ProcessDomain 배열에 생성된 객체의 processList에 Map 객체를 넣기 위해
 		int psCount = 0;
+		
+		//중복되지 않는 HashMap을 만들어 processList에 add 하기 위해
 		int mapCount = 0;
+		
 		try {
+			//한줄씩 읽어옴
 			while((line = reader.readLine()) != null) {
 				line = line.trim();
 				
-				if(line.contains("Get Process")) { //Gathering Facts에서 성공한 ip를 땀
+				if(line.contains("Get Process")) { //Gathering Facts에서 성공한 장비들에 대해서 프로세스를 가져옴
 					flag = true;
 					
 					continue;
 				}
 				
-				if(flag == true) { //호스트 값 뽑기
+				if(flag == true) { //Gathering Facts 구문에서 호스트를 따는 부분
 					StringTokenizer st = new StringTokenizer(line, " ");
 
-					String preText = ""; //전에 ok:, changed 구분하기 위해 사용
+					String preText = ""; //전에 ok:, changed 구분하기 위해 사용 (changed 가 성공한 장비이기 때문에 여기서 호스트 ip를 땀)
 					while(st.hasMoreTokens()) {
 						String text = st.nextToken();
 								
-						if(preText.equals("changed:") && text.contains("]")) {
+						if(preText.equals("changed:") && text.contains("]")) { //그전의 문자가 changed 가 포함되고 지금 문자에 "]"가 포함된다면
 							text = text.replaceAll("[\\[\\]]", "");
 							
 							pd[pdCount] = new ProcessDomain();
@@ -97,7 +104,7 @@ public class AnsibleServiceImpl implements AnsibleService{
 							pdCount++;
 						}
 						
-						if(text.contains("\"ps.stdout_lines\":")) {
+						if(text.contains("\"ps.stdout_lines\":")) { //프로세스 리스트가 나오기 시작하기 시작하기 전
 							flag = false;
 							flag2 = true;
 
@@ -107,19 +114,19 @@ public class AnsibleServiceImpl implements AnsibleService{
 					}
 				}else {
 					if(flag2 == true){
-						///////////////replace////////////////
+						//특수 문자 제거
 						String temp = line.toString().trim();
 						temp = temp.replaceAll("\"", "");
 						temp = temp.replaceAll(",", "");
 						
 						if(temp.equals("]") || temp.equals("}") || temp.contains("ok:")) continue;
 						
-						if(temp.contains("ps.stdout_lines:")) {
+						if(temp.contains("ps.stdout_lines:")) { //다음 장비의 프로세스의 리스트가 나타나기 시작한다는 말 따라서 psCount를 증가시켜준다.
 							psCount++;
 							continue;
 						}
 						
-						if(temp.contains("PLAY RECAP")) {
+						if(temp.contains("PLAY RECAP")) { //마지막에 나오는 문장이니 끝내준다.
 							break;
 						}
 						
@@ -133,10 +140,10 @@ public class AnsibleServiceImpl implements AnsibleService{
 						
 						if(st.hasMoreTokens()) {
 
-							while(true) {
+							while(true) { //while문을 돌리는 이유는 StringTokenizer 가 3개만 나와야 하는데 4개 이상 나올경우 이상한곳에 대입됨
 								temp2 = st.nextToken();
 								
-								if(temp2.matches("^[0-9]+(\\.?[0-9]*)$")) {
+								if(temp2.matches("^[0-9]+(\\.?[0-9]*)$")) { //cpu가 실수이기 때문에 cpu가 나올때까지 cmd를 합쳐줌
 									mem = temp2;
 									break;
 								}
@@ -145,7 +152,8 @@ public class AnsibleServiceImpl implements AnsibleService{
 							}
 							
 							cpu = st.nextToken();
-										
+							
+							//map 객체를 만들어 ProcessDomain의 getProcessList에 add시켜줌
 							map[mapCount] = new HashMap<String, String>();
 							map[mapCount].put("cmd", cmd.trim());
 							map[mapCount].put("mem", mem);
@@ -153,15 +161,18 @@ public class AnsibleServiceImpl implements AnsibleService{
 							
 							pd[psCount].getProcessList().add(map[mapCount]); //pd에 먼저 넣으면안됨
 							
+							//다음 주소에 객체 생성을 위해 사용
 							mapCount++;	
 						}
 					}
 				}		
 			}
 			
+			//마지막에 리턴하는 pdList에 ProcessDomain 배열에 있는 값들을 pdList에 add시켜준다.
 			for(int i = 0; i < pdCount; i++) {
 				pdList.add(pd[i]);
 			}
+			
 		} catch(Exception e) {
 			e.printStackTrace();
 		} finally {

@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.domain.ProcessDomain;
 import com.example.demo.service.AnsibleService;
-import com.example.demo.service.AnsibleServiceImpl2;
 
 
 
@@ -23,19 +22,9 @@ public class AnsibleController {
 	
 	@Resource(name="AnsibleService")
 	private AnsibleService ansibleService;
-	
-	@Resource(name="AnsibleService2")
-	private AnsibleServiceImpl2 ansibleService2;
-	
+
 	@PostMapping("/getProcess")
 	public List<ProcessDomain> getProcess(@RequestBody Map<String, String> ansibleCmd) {
-
 		return ansibleService.getProcess(ansibleCmd);
-	}
-	
-	@PostMapping("/getProcess2")
-	public String getProcess2(@RequestBody Map<String, Object> ansibleCmd) {
-
-		return ansibleService2.getProcess2(ansibleCmd);
 	}
 }
