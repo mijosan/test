@@ -1,10 +1,12 @@
 package com.example.demo.service;
 
-import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+
+import org.springframework.web.bind.annotation.RequestBody;
 
 import com.example.demo.domain.ProcessDomain;
 
 public interface AnsibleService {
-	ProcessDomain getProcess(Map<String, Object> ansibleCmd, ProcessDomain processDomain);
+	List<ProcessDomain> getProcess(@RequestBody Map<String, String> ansibleCmd);
 }

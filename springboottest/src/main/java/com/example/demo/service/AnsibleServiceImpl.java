@@ -20,12 +20,14 @@ import com.example.demo.domain.ProcessDomain;
 @Service("AnsibleService")
 public class AnsibleServiceImpl implements AnsibleService{
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
-
+	
+	List<ProcessDomain> pdList = new ArrayList<ProcessDomain>();
+	
 	@Autowired
 	SHHService ssh;
 	
 	@Override
-	public ProcessDomain getProcess(Map<String, Object> ansibleCmd, ProcessDomain processDomain){
+	public List<ProcessDomain> getProcess(Map<String, String> ansibleCmd){
 
 		String userName = ansibleCmd.get("userName").toString();
 		String host = ansibleCmd.get("host").toString();
@@ -35,43 +37,46 @@ public class AnsibleServiceImpl implements AnsibleService{
 		String var = ansibleCmd.get("var").toString();
 		
 		String result = null;
-
+		
+		pdList = new ArrayList<ProcessDomain>();
+		
 		try {
 			ssh.init(host, port, userName, password);
 			
 			result = ssh.executeCommand("ansible-playbook /root/playbook/" + playbook + " --extra-vars \"NAME=" + var + "\"");
-			logger.info(result);
+			System.out.println(result);
+			parsing3(result);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
-		processDomain.setPsList(parsing(result));
-		
-		
-		return processDomain;
+		return pdList;
 	}
 	
-	private List<HashMap<String, String>> parsing(String result){
-		
-		List<HashMap<String,String>> list = new ArrayList<HashMap<String, String>>();
-		
-		HashMap<String, String> map = new HashMap<String, String>();
-
+	private void parsing3(String result) {
 		BufferedReader reader = new BufferedReader(new StringReader(result)); 
-			
+		
 		String line = null;
+		
+		boolean flag = false; 
+		boolean flag2 = false;
 		
 		StringBuilder sb = new StringBuilder();
 		
-		boolean flag = false;
-		boolean flag2 = false;
+		//장비가 100대 넘어갈수도 있으니 List 형식으로 바꿔야함
+		ProcessDomain[] pd = new ProcessDomain[100];
 		
-		int count = 0;
+		//프로세스가 100개 넘어갈수도 있으니 동적으로 확장하는 List 형식으로 변경
+		HashMap[] map = new HashMap[100];
 		
+		int pdCount = 0;
+		int psCount = 0;
+		int mapCount = 0;
 		try {
 			while((line = reader.readLine()) != null) {
+				line = line.trim();
 				
-				if(line.contains("debug")) { //debug문을 만나면 그때부터 파싱 시작	
+				if(line.contains("Get Process")) { //Gathering Facts에서 성공한 ip를 땀
 					flag = true;
 					
 					continue;
@@ -79,42 +84,83 @@ public class AnsibleServiceImpl implements AnsibleService{
 				
 				if(flag == true) { //호스트 값 뽑기
 					StringTokenizer st = new StringTokenizer(line, " ");
-					
+
+					String preText = ""; //전에 ok:, changed 구분하기 위해 사용
 					while(st.hasMoreTokens()) {
-						String str = st.nextToken();
-						
-						if(str.equals("ok:")) {
-							String temp = st.nextToken();
+						String text = st.nextToken();
+								
+						if(preText.equals("changed:") && text.contains("]")) {
+							text = text.replaceAll("[\\[\\]]", "");
 							
-							temp = temp.replaceAll("[\\[\\]]", "");
-							map.put("host" + count, temp);
-							break;
+							pd[pdCount] = new ProcessDomain();
+							pd[pdCount].setHostIp(text);
+							pdCount++;
 						}
 						
-						if(str.contains("ps.stdout_lines")) { //ps목록 전의 문장
+						if(text.contains("\"ps.stdout_lines\":")) {
 							flag = false;
 							flag2 = true;
+
+							break;
+						}	
+						preText = text;
+					}
+				}else {
+					if(flag2 == true){
+						///////////////replace////////////////
+						String temp = line.toString().trim();
+						temp = temp.replaceAll("\"", "");
+						temp = temp.replaceAll(",", "");
+						
+						if(temp.equals("]") || temp.equals("}") || temp.contains("ok:")) continue;
+						
+						if(temp.contains("ps.stdout_lines:")) {
+							psCount++;
+							continue;
+						}
+						
+						if(temp.contains("PLAY RECAP")) {
 							break;
 						}
+						
+						StringTokenizer st = new StringTokenizer(temp, " ");				
+						
+						String cmd = null;
+						String mem = null;
+						String cpu = null;
+						
+						if(st.hasMoreTokens()) {
+							cmd = st.nextToken();
+							System.out.println(cmd);
+							mem = st.nextToken();
+							System.out.println(mem);
+							cpu = st.nextToken();
+							System.out.println(cpu);
+							
+							map[mapCount] = new HashMap<String, String>();
+							map[mapCount].put("cmd", cmd);
+							map[mapCount].put("mem", mem);
+							map[mapCount].put("cpu", cpu);
+							
+							pd[psCount].getProcessList().add(map[mapCount]); //pd에 먼저 넣으면안됨
+							
+							mapCount++;	
+						}
 					}
-				}else { //ps목록 뽑기
-					if(line.equals("}")) {
-						flag = true;
-						map.put("ps" + count, new String(sb.toString()));
-						sb.delete(0, sb.length());
-						count++;
-					}else if(flag2 == true){
-						sb.append(line);			
-					}
-				}
+				}		
 			}
 			
-			list.add(map);
-			
+			for(int i = 0; i < pdCount; i++) {
+				pdList.add(pd[i]);
+			}
 		} catch(Exception e) {
 			e.printStackTrace();
+		} finally {
+			try {
+				reader.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
-			
-		return list;
-	}
+	}		
 }
