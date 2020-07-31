@@ -44,7 +44,7 @@ public class AnsibleServiceImpl implements AnsibleService{
 			ssh.init(host, port, userName, password);
 			
 			result = ssh.executeCommand("ansible-playbook /root/playbook/" + playbook + " --extra-vars \"NAME=" + var + "\"");
-			System.out.println(result);
+			
 			parsing3(result);
 		} catch (IOException e) {
 			e.printStackTrace();
